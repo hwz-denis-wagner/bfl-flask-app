@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>BFL Bildgenerator</title>
+</head>
+<body>
+  <h1>BFL Prompt → Bild</h1>
+  <form method="post">
+    <input type="text" name="prompt" value="{{ prompt }}" placeholder="Gib deinen Prompt ein" required>
+    <button type="submit">Absenden</button>
+  </form>
+
+  {% if image_url %}
+    <h2>Ergebnis:</h2>
+    <img src="{{ image_url }}" alt="Generiertes Bild" style="max-width: 100%;">
+  {% endif %}
+</body>
+</html>
