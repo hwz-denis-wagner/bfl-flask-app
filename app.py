@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # API-Konfiguration
 # API_KEY = os.getenv("BFL_API_KEY")  # wird bei Render als Environment Variable gesetzt
-API_KEY = "f678b2cb-31e9-40e0-b553-739ed37f48fc"
+API_KEY = "79362105-dfae-4290-a2e3-012796ed7d41"
 POST_URL = "https://api.us1.bfl.ai/v1/flux-pro-1.1-ultra"
 GET_URL = "https://api.us1.bfl.ai/v1/get_result"
 
