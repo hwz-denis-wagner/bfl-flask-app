@@ -1,20 +1,281 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>BFL Bildgenerator</title>
+  <meta charset="utf-8">
+  <title>PoC - KI gestützte Bildgeneration für CI/CD konforme Marketing-Kampagnen</title>
+  <style>
+    /* === Global Page Layout and Inputs === */
+    body {
+      font-family: monospace;
+      max-width: 700px;
+      margin: 2rem auto;
+      position: relative;
+    }
+    input[type="text"], textarea, input[type="number"] {
+      width: 100%;
+      padding: .5rem;
+      margin-bottom: .5rem;
+      margin-top: .5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    button, a.button {
+      margin-top: .5rem;
+      padding: .5rem 1rem;
+      background: #0066cc;
+      color: #fff;
+      text-decoration: none;
+      border: none;
+      border-radius: .25rem;
+      cursor: pointer;
+    }
+    a.button:hover, button:hover {
+      background: #005bb5;
+    }
+
+    /* === Spinner (Loading Indicator) === */
+    #spinner {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border: 5px solid #ccc;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 1rem;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* === Input Field Wrapper & Edit Icons === */
+    .field-wrapper {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: .5rem;
+    }
+    .field-wrapper textarea,
+    .field-wrapper input[type="number"] {
+      flex: 1;
+      resize: vertical;
+    }
+    .field-wrapper textarea[readonly],
+    .field-wrapper input[readonly] {
+      background-color: #f5f5f5;
+      color: #777;
+    }
+    .edit-icon {
+      cursor: pointer;
+      margin-left: .5rem;
+      font-size: 1rem;
+      user-select: none;
+    }
+    .field-wrapper textarea {
+      height: 200px;
+    }
+
+    /* === Tooltip Style === */
+    .help-icon {
+      margin-left: .25rem;
+      cursor: pointer;
+      color: #0066cc;
+    }
+    .tooltip {
+      display: none;
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: .5rem;
+      border-radius: .25rem;
+      font-size: .9rem;
+      width: 200px;
+      z-index: 10;
+      font-weight: normal;
+    }
+    .tooltip.visible {
+      display: block;
+    }
+
+    /* === Flyout Panel (Help) === */
+    #help-flyout {
+      position: fixed;
+      top: 0;
+      right: -330px;
+      width: 300px;
+      height: 100%;
+      background: #f9f9f9;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+      padding: 1rem;
+      transition: right 0.3s ease;
+      overflow-y: auto;
+      z-index: 20;
+    }
+    #help-flyout.open {
+      right: 0;
+    }
+    #help-flyout h2 {
+      margin-top: 0;
+    }
+    #help-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #0066cc;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    #help-close {
+      position: absolute;
+      top: 0.3rem;
+      right: 0.5rem;
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #000;
+    }
+  </style>
 </head>
 <body>
-  <h1>BFL Prompt → Bild</h1>
+  <!-- === Headings and Intro Text === -->
+  <h2>Proof of Concept:</h2>
+  <h1>KI gestützte Bildgeneration für CI/CD konforme Marketing-Kampagnen</h1>
+  <button id="help-toggle" title="Hilfe">?</button>
+  <p>This webpage is part of a certificate thesis for the "MCA AIF24-1 CAS AI in Finance" at the HWZ. Author: Denis Wagner</p>
 
-  <form method="post" action="/">
-    <input type="text" name="prompt" placeholder="Gib deinen Prompt ein" required>
-    <button type="submit">Absenden</button>
+  <!-- === Image Generation Form === -->
+  <form id="prompt-form" method="post">
+
+    <!-- Prompt Field -->
+    <label for="prompt">Prompt:
+      <span class="help-icon" data-tip="prompt-tip">ℹ️</span>
+      <div id="prompt-tip" class="tooltip">Describe what kind of image you want to generate.</div>
+    </label>
+    <input type="text" id="prompt" name="prompt" placeholder="e.g. A happy family puts money into a piggy bank" required>
+
+    <!-- CI/CD Context Field -->
+    <label for="cicd">CI/CD:
+      <span class="help-icon" data-tip="cicd-tip">ℹ️</span>
+      <div id="cicd-tip" class="tooltip">This is a CI/CD-optimized add-on prompt for brand conformity.</div>
+    </label>
+    <div class="field-wrapper">
+      <textarea id="cicd" name="cicd" readonly>The imagery should radiate trust, closeness and expertise. The scene is kept in natural light and appears authentic, high-quality and genuine. People appear likeable, professional and credible - no exaggerated emotionality or posed poses. The colour mood is friendly, bright, slightly desaturated, without strong contrasts or artificial filters. The perspective is at eye level. Everyday situations relating to finance should be shown, e.g. counselling, mobile services or family moments - no clichés such as shaking hands in front of skyscrapers. The image should appear to have been taken individually or generated according to these specifications.</textarea>
+      <span class="edit-icon" data-target="cicd">✏️</span>
+    </div>
+
+    <!-- Seed Input -->
+    <label for="seed">Seed:
+      <span class="help-icon" data-tip="seed-tip">ℹ️</span>
+      <div id="seed-tip" class="tooltip">Seed is used to reproduce previous results. Can be changed manually.</div>
+    </label>
+    <div class="field-wrapper">
+      <input type="number" id="seed" name="seed" value="{{ seed }}" min="1" max="100" readonly>
+      <span class="edit-icon" data-target="seed" title="Edit">✏️</span>
+    </div>
+
+    <!-- Generate Image Button -->
+    <label>Generate:
+      <span class="help-icon" data-tip="gen-tip">ℹ️</span>
+      <div id="gen-tip" class="tooltip">Triggers image generation via BFL API. Use tokens responsibly.</div>
+    </label>
+    <button type="submit">Generate Image ($$)</button>
+    <div id="spinner"></div>
   </form>
 
-  {% if image_url %}
-    <h2>Ergebnis:</h2>
-    <img src="{{ image_url }}" alt="Generiertes Bild" style="max-width: 100%;">
+  <!-- === Error Output === -->
+  {% if error %}
+    <p class="error">Error: {{ error }}</p>
   {% endif %}
+
+  <!-- === Display Generated Image === -->
+  {% if image_url %}
+    <h2>Generated Image:</h2>
+    <img src="{{ image_url }}" alt="Generated Image" style="max-width:100%; margin-bottom:1rem;">
+
+    <!-- === Print-Ready Button === -->
+    <form action="{{ url_for('print_ready') }}" method="post" style="display:inline;">
+      <label>Upscaling:
+        <span class="help-icon" data-tip="print-tip">ℹ️</span>
+        <div id="print-tip" class="tooltip">Creates a 300dpi version with white bleed and crop marks.</div>
+      </label>
+      <input type="hidden" name="image_url" value="{{ image_url }}">
+      <button type="submit">Download print-ready version</button>
+    </form>
+  {% endif %}
+
+  <!-- === Help Flyout Panel === -->
+  <div id="help-flyout">
+    <button id="help-close" title="Close">×</button>
+    <h2>Help</h2>
+    <p><strong>Prompt:</strong> Main image idea you want to generate.</p>
+    <p><strong>CI/CD:</strong> Style and tone constraints for consistency with your brand.</p>
+    <p><strong>Seed:</strong> Used to replicate previous image results.</p>
+    <p><strong>Generate:</strong> Sends data to the API to generate an image.</p>
+    <p><strong>Download (print):</strong> Creates a high-resolution print-ready file.</p>
+    <hr>
+    <h3>Impressum</h3>
+    <p>
+        Denis Wagner<br>
+        Haldenweg 12c<br>
+        8224 Löhningen<br>
+        Switzerland<br><br>
+        E-Mail: impressum@deniswagner.ch<br>
+    </p>
+  </div>
+
+  <!-- === JavaScript for Interactivity === -->
+  <script>
+    // Show spinner on form submit
+    const form = document.getElementById('prompt-form');
+    const spinner = document.getElementById('spinner');
+    form.addEventListener('submit', () => {
+      spinner.style.display = 'inline-block';
+    });
+
+    // Toggle editable fields (e.g. seed and CI/CD)
+    document.querySelectorAll('.edit-icon').forEach(icon => {
+      icon.addEventListener('click', () => {
+        const targetId = icon.getAttribute('data-target');
+        const field = document.getElementById(targetId);
+        if (field.hasAttribute('readonly')) {
+          field.removeAttribute('readonly');
+          field.focus();
+          icon.textContent = '✔️';
+        } else {
+          field.setAttribute('readonly', '');
+          icon.textContent = '✏️';
+        }
+      });
+    });
+
+    // Tooltip show/hide behavior
+    document.querySelectorAll('.help-icon').forEach(h => {
+      const tip = document.getElementById(h.dataset.tip);
+      h.addEventListener('mouseenter', () => tip.classList.add('visible'));
+      h.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+    });
+
+    // Open flyout panel
+    const flyout = document.getElementById('help-flyout');
+    document.getElementById('help-toggle').addEventListener('click', () => {
+      flyout.classList.toggle('open');
+    });
+
+    // Close flyout panel
+    document.getElementById('help-close').addEventListener('click', () => {
+      flyout.classList.remove('open');
+    });
+  </script>
 </body>
 </html>
