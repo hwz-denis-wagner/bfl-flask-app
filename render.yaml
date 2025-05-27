@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: bfl-flask-app
-    env: python
-    buildCommand: ""
-    startCommand: gunicorn app:app
-    envVars:
-      - key: BFL_API_KEY
-        value: 
